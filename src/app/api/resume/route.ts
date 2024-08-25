@@ -22,6 +22,7 @@ export async function POST(req: NextRequest, res: NextResponse) {
     for (const chunk of transcriptionIntoChunks) {
       const { text } = await generateText({
         model: google("gemini-1.5-flash-latest"),
+        temperature: 0.2,
         system:
           "Professional summarizer, concise and clear, highlighting key points.",
         prompt: `Provide a plain text response in JSON format without formatting indicators, i should be able to use JSON.parse and get an object, it should be an array of objects with the following format: [{"text": "<summary>", "from": "<HH:MM:SS>", to: "<HH:MM:SS>"}]. Summarize the following video transcription in 3 parts. Video transcription: ${chunk}`,
