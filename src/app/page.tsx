@@ -6,6 +6,7 @@ import { FormEvent, useState } from "react";
 export default function Chat() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<SummaryI[]>();
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -23,8 +24,10 @@ export default function Chat() {
       summary: SummaryI[];
       error: string;
     } = await res.json();
-    if (data.summary.length > 0) setMessages(data.summary);
+    if (data?.summary?.length > 0) setMessages(data.summary);
     else {
+      setMessages([]);
+      setError(data.error);
       console.error("Error fetching transcript front");
     }
   };
@@ -40,6 +43,7 @@ export default function Chat() {
         />
       </form>
       <div className="w-2/3">
+        {error && <p className="text-red-500">{error}</p>}
         {messages &&
           messages.map((message, index: number) => (
             <div key={index} className="mb-4">
