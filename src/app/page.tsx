@@ -1,11 +1,7 @@
 "use client";
 
+import { SummaryI } from "@/interface/resume.interface";
 import { FormEvent, useState } from "react";
-
-type SummaryI = {
-  text: string;
-  time: string;
-};
 
 export default function Chat() {
   const [input, setInput] = useState("");
@@ -13,17 +9,24 @@ export default function Chat() {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
     if (!input) return;
+
     const res = await fetch("/api/resume", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ message: input }),
+      body: JSON.stringify({ url: input }),
     });
-
-    const data = await res.json();
-    setMessages(data.summary);
+    const data: {
+      summary: SummaryI[];
+      error: string;
+    } = await res.json();
+    if (data.summary.length > 0) setMessages(data.summary);
+    else {
+      console.error("Error fetching transcript front");
+    }
   };
 
   return (
@@ -40,7 +43,9 @@ export default function Chat() {
         {messages &&
           messages.map((message, index: number) => (
             <div key={index} className="mb-4">
-              <h3>{message.time}</h3>
+              <h3 className="font-bold">
+                From: {message.from} to: {message.to}
+              </h3>
               <p>{message.text}</p>
             </div>
           ))}
