@@ -1,0 +1,8 @@
+{
+  "editor.tabSize": 4,
+  "editor.formatOnSave": true,
+  "editor.wordWrapColumn": 80,
+  "editor.wordBreak": "keepAll",
+  "editor.wordWrap": "wordWrapColumn",
+  "editor.rulers": [80]
+}
