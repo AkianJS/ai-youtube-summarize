@@ -4,6 +4,8 @@ import { google } from "@ai-sdk/google";
 import { generateText } from "ai";
 import { NextRequest, NextResponse } from "next/server";
 
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest, res: NextResponse) {
   try {
     const body: ResumeI = await req.json();
