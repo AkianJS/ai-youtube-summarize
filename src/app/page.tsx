@@ -4,6 +4,7 @@ import { SummarySkeleton } from "@/components/skeleton/summarize-skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SummaryI } from "@/interface/resume.interface";
+import { msToTime } from "@/utils/utility";
 import { Play } from "lucide-react";
 import { useState } from "react";
 
@@ -29,6 +30,7 @@ export default function Chat() {
     } = await res.json();
 
     if (data?.summary?.length > 0) {
+      console.log(data.summary);
       setMessages(data.summary);
     } else {
       setMessages([]);
@@ -78,9 +80,9 @@ export default function Chat() {
           <div className="max-w-2xl mt-8 mx-auto bg-white/10 backdrop-blur-sm rounded-lg p-6 text-left">
             <h2 className="text-2xl font-semibold mb-4">Video Summary</h2>
             {messages.map((message, index) => (
-              <div key={index} className="h-40 overflow-y-auto">
+              <div className="mt-4" key={index}>
                 <p>
-                  From: {message.from} To: {message.to}
+                  From: {msToTime(+message.from)} To: {msToTime(+message.to)}
                 </p>
                 <p className="text-gray-300">{message.text}</p>
               </div>

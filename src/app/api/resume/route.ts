@@ -27,7 +27,7 @@ export async function POST(req: NextRequest, res: NextResponse) {
         temperature: 0.2,
         system:
           "Professional summarizer, concise and clear, highlighting key points.",
-        prompt: `Provide a plain text response in JSON format without formatting indicators, i should be able to use JSON.parse and get an object, it should be an array of objects with the following format: [{"text": "<summary>", "from": "<HH:MM:SS>", to: "<HH:MM:SS>"}]. Note that time is in miliseconds, convert it to HH:MM:SS. Summarize the following video transcription in 3 parts. Video transcription: ${chunk}`,
+        prompt: `Provide a plain text response in JSON format without formatting indicators, i should be able to use JSON.parse and get an object, it should be an array of objects with the following format: [{"text": "<summary>", "from": "<return "from" number as string>", to: "<return "to" number as string>"}]. Summarize the following video transcription in 3 parts. Video transcription: ${chunk}`,
       });
       const parsedText: SummaryI[] = JSON.parse(text);
       summary = [...summary, ...parsedText];
