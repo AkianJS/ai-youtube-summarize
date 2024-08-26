@@ -30,7 +30,6 @@ export default function Chat() {
     } = await res.json();
 
     if (data?.summary?.length > 0) {
-      console.log(data.summary);
       setMessages(data.summary);
     } else {
       setMessages([]);
