@@ -32,14 +32,10 @@ export async function POST(req: NextRequest, res: NextResponse) {
         model: groq("llama-3.1-70b-versatile"),
         schema: z.object({
           text: z.string().describe("The transcription text to be summarized."),
-          from: z
-            .string()
-            .describe("The starting point of the part to be summarized."),
-          to: z
-            .string()
-            .describe("The ending point of the part to be summarized."),
+          from: z.string(),
+          to: z.string(),
         }),
-        system: `You are a professional summarizer, concise and clear. You are going to summarize a video transcription into three or two parts, whatever makes sense to keep the context, providing from and to as the starting and ending points of each part. Explain the context of the video and the main points. The video is about a topic that you are familiar with, and you are going to summarize it in ${language}. Every part should be around 40 to 60 words.`,
+        system: `You are a professional summarizer, concise and clear. You are going to summarize a video transcription into three or two parts, whatever makes sense to keep the context. Explain the context of the video and the main points. Provide the summary in ${language}. Every summary part you answer should be around 60 words. Before each section of the summary, add a note specifying the exact timestamp in the video that corresponds to the summary you are providing. Before each dialogue, there are properties named 'from' and 'to' that represent the beginning and end of the dialogue, respectively. For instance, consider the following example: from: 145 to: 1002 text: "i did that, and you know" from: 1500 to: 2204 text: "yes, I know". In this case, you would send the summary using the 'from' timestamp of the beginning (from: 145) and the 'to' timestamp of the end (to: 2204).`,
         prompt: `Video transcription: ${chunk}`,
       });
 
