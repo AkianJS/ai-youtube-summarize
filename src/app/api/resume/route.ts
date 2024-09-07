@@ -1,15 +1,16 @@
 import { ResumeI, SummaryI } from "@/interface/resume.interface";
 import { getYouTubeTranscript } from "@/utils/youtube-api";
-import { google } from "@ai-sdk/google";
-import { generateText } from "ai";
+import { generateObject } from "ai";
 import { NextRequest, NextResponse } from "next/server";
+import { createOpenAI as createGroq } from "@ai-sdk/openai";
+import { z } from "zod";
 
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest, res: NextResponse) {
   try {
     const body: ResumeI = await req.json();
-    const { url } = body;
+    const { url, language } = body;
 
     const transcriptedVideo = await getYouTubeTranscript(url);
 
@@ -21,25 +22,39 @@ export async function POST(req: NextRequest, res: NextResponse) {
 
     let summary: SummaryI[] = [];
 
+    const groq = createGroq({
+      apiKey: process.env.GROQ_API_KEY,
+      baseURL: "https://api.groq.com/openai/v1",
+    });
+
     for (const chunk of transcriptionIntoChunks) {
-      const { text } = await generateText({
-        model: google("gemini-1.5-flash-latest"),
-        temperature: 0.2,
-        system:
-          "Professional summarizer, concise and clear, highlighting key points.",
-        prompt: `Provide a plain text response in JSON format without formatting indicators, i should be able to use JSON.parse and get an object, it should be an array of objects with the following format: [{"text": "<summary>", "from": "<return "from" number as string>", to: "<return "to" number as string>"}]. Summarize the following video transcription in 3 parts. Video transcription: ${chunk}`,
+      const { object } = await generateObject({
+        model: groq("llama-3.1-70b-versatile"),
+        schema: z.object({
+          text: z.string().describe("The transcription text to be summarized."),
+          from: z
+            .string()
+            .describe("The starting point of the part to be summarized."),
+          to: z
+            .string()
+            .describe("The ending point of the part to be summarized."),
+        }),
+        system: `You are a professional summarizer, concise and clear. You are going to summarize a video transcription into three or two parts, whatever makes sense to keep the context, providing from and to as the starting and ending points of each part. Explain the context of the video and the main points. The video is about a topic that you are familiar with, and you are going to summarize it in ${language}. Every part should be around 40 to 60 words.`,
+        prompt: `Video transcription: ${chunk}`,
       });
-      const parsedText: SummaryI[] = JSON.parse(text);
-      summary = [...summary, ...parsedText];
+
+      summary = [...summary, ...[object]];
     }
 
     return Response.json({
       summary,
     });
   } catch (e) {
+    // eslint-disable-next-line no-console
     console.error("Something went wrong: ", e);
+
     return Response.json({
-      error: "Something went wrong, try again later",
+      error: "Something went wrong: " + e,
     });
   }
 }

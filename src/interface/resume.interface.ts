@@ -1,5 +1,6 @@
 export interface ResumeI {
   url: string;
+  language: string;
 }
 
 export interface ResumeApiResponseI {

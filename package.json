@@ -1,6 +1,7 @@
 {
-  "name": "myvideosummarizer",
-  "version": "0.1.0",
+  "name": "youtube-summary",
+  "version": "1.0.0",
+  "description": "A YouTube video summarizer powered by AI",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -10,6 +11,8 @@
   },
   "dependencies": {
     "@ai-sdk/google": "^0.0.45",
+    "@ai-sdk/openai": "^0.0.54",
+    "@radix-ui/react-select": "^2.1.1",
     "@radix-ui/react-slot": "^1.1.0",
     "ai": "^3.3.17",
     "class-variance-authority": "^0.7.0",
