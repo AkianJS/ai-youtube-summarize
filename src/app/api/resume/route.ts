@@ -40,7 +40,7 @@ export async function POST(req: NextRequest, res: NextResponse) {
     let summary: SummaryI[] = [];
 
     for (const chunk of transcriptionIntoChunks) {
-      await delay(1000);
+      await delay(200);
 
       // Add user message with current chunk
       messages.push({
@@ -67,6 +67,7 @@ export async function POST(req: NextRequest, res: NextResponse) {
       });
 
       summary.push(object);
+      console.log("Call", chunk);
     }
 
     return Response.json({ summary });
