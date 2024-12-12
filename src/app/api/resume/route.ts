@@ -1,8 +1,9 @@
 import { ResumeI, SummaryI } from "@/interface/resume.interface";
 import { getYouTubeTranscript } from "@/utils/youtube-api";
-import { generateObject } from "ai";
+import { CoreMessage, generateObject } from "ai";
 import { NextRequest, NextResponse } from "next/server";
 import { createOpenAI as createGroq } from "@ai-sdk/openai";
+import { createGoogleGenerativeAI, google } from "@ai-sdk/google";
 import { z } from "zod";
 
 export const maxDuration = 60;
@@ -14,45 +15,62 @@ export async function POST(req: NextRequest, res: NextResponse) {
     const body: ResumeI = await req.json();
     const { url, language } = body;
 
-    // const systemExtractKnowledge = `The following prompt will be a video transcription. I need you to extract the knowledge, to highlight key points, and provide a concise response. The main goal is that the user can get all the knowledge from the video. Provide the response in ${language}. Before each dialogue, there are properties named 'from' and 'to' that represent the beginning and end of the dialogue, respectively. For instance, consider the following example: from: 145 to: 1002 text: "i did that, and you know" from: 1500 to: 2204 text: "yes, I know". In this case, you would send the summary using the 'from' timestamp of the beginning (from: 145) and the 'to' timestamp of the end (to: 2204).`;
-
-    const commonSummary = `You are a professional summarizer, concise and clear. You are going to summarize a video transcription into three or two parts, whatever makes sense to keep the context. Explain the context of the video and the main points. Provide the summary in ${language}. Every summary part you answer should be around 60 words. Before each section of the summary, add a note specifying the exact timestamp in the video that corresponds to the summary you are providing. Before each dialogue, there are properties named 'from' and 'to' that represent the beginning and end of the dialogue, respectively. For instance, consider the following example: from: 145 to: 1002 text: "i did that, and you know" from: 1500 to: 2204 text: "yes, I know". In this case, you would send the summary using the 'from' timestamp of the beginning (from: 145) and the 'to' timestamp of the end (to: 2204).`;
+    // Create system messages as part of conversation history
+    const messages = [
+      {
+        role: "system",
+        content: `You are a professional summarizer, concise and clear. You will summarize video transcriptions into three or two parts, whatever makes sense to keep the context. Explain the context of the video and the main points. Provide summaries in ${language}. Every summary part should be around 100 words.`,
+      },
+      {
+        role: "system",
+        content: `For each transcription section, extract key knowledge and highlight main points. The goal is that users can get all knowledge from the video. Provide responses in ${language}.`,
+      },
+    ];
 
     const transcriptedVideo = await getYouTubeTranscript(url);
-
-    const transcriptionIntoChunks = splitMessageIntoChunks(
-      JSON.stringify(transcriptedVideo),
-      10000,
-      10500
+    const transcriptionIntoChunks = await splitMessageIntoChunks(
+      JSON.stringify(transcriptedVideo)
     );
 
-    let summary: SummaryI[] = [];
-
-    const groq = createGroq({
-      apiKey: process.env.GROQ_API_KEY,
-      baseURL: "https://api.groq.com/openai/v1",
+    const google = createGoogleGenerativeAI({
+      apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
     });
+
+    const model = google("gemini-1.5-flash-latest");
+
+    let summary: SummaryI[] = [];
 
     for (const chunk of transcriptionIntoChunks) {
       await delay(1000);
 
+      // Add user message with current chunk
+      messages.push({
+        role: "user",
+        content: `Video transcription part: ${chunk}`,
+      });
+
       const { object } = await generateObject({
-        model: groq("llama-3.3-70b-versatile"),
+        model: model,
         schema: z.object({
-          text: z.string().describe("The transcription text to be summarized."),
+          text: z
+            .string()
+            .describe("The summary of the transcription section."),
           from: z.string(),
           to: z.string(),
         }),
-        system: commonSummary,
-        prompt: `Video transcription: ${chunk}`,
+        messages: messages as CoreMessage[],
       });
 
-      summary = [...summary, ...[object]];
+      // Add assistant response to history
+      messages.push({
+        role: "assistant",
+        content: object.text,
+      });
+
+      summary.push(object);
     }
 
-    return Response.json({
-      summary,
-    });
+    return Response.json({ summary });
   } catch (e) {
     return Response.json({
       error: "Something went wrong: " + e,
@@ -60,33 +78,16 @@ export async function POST(req: NextRequest, res: NextResponse) {
   }
 }
 
-function splitMessageIntoChunks(
-  message: string,
-  minChunkSize: number,
-  maxChunkSize: number
-): string[] {
-  const chunks = [];
-  let start = 0;
+// Import the text splitter
+import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 
-  while (start < message.length) {
-    let end = start + maxChunkSize;
+// Replace the current splitMessageIntoChunks function with LangChain's splitter
+async function splitMessageIntoChunks(message: string): Promise<string[]> {
+  const splitter = new RecursiveCharacterTextSplitter({
+    chunkSize: 20000,
+    chunkOverlap: 100, // Add some overlap to maintain context between chunks
+  });
 
-    if (end >= message.length) {
-      chunks.push(message.slice(start));
-      break;
-    }
-
-    // Find the last period within the range
-    let periodIndex = message.lastIndexOf("}", end);
-
-    if (periodIndex === -1 || periodIndex < start + minChunkSize) {
-      // If no period is found within the range, split at maxChunkSize
-      periodIndex = end;
-    }
-
-    chunks.push(message.slice(start, periodIndex + 1));
-    start = periodIndex + 1;
-  }
-
-  return chunks;
+  const docs = await splitter.createDocuments([message]);
+  return docs.map((doc) => doc.pageContent);
 }

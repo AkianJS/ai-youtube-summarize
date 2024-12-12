@@ -2,6 +2,7 @@
   "editor.tabSize": 4,
   "editor.formatOnSave": true,
   "editor.wordWrapColumn": 80,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.wordBreak": "keepAll",
   "editor.wordWrap": "wordWrapColumn",
   "editor.rulers": [80]
