@@ -37,7 +37,7 @@ export async function POST(req: NextRequest, res: NextResponse) {
       await delay(1000);
 
       const { object } = await generateObject({
-        model: groq("llama-3.1-70b-versatile"),
+        model: groq("mixtral-8x7b-32768"),
         schema: z.object({
           text: z.string().describe("The transcription text to be summarized."),
           from: z.string(),
