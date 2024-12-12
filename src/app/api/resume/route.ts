@@ -7,10 +7,16 @@ import { z } from "zod";
 
 export const maxDuration = 60;
 
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export async function POST(req: NextRequest, res: NextResponse) {
   try {
     const body: ResumeI = await req.json();
     const { url, language } = body;
+
+    const systemExtractKnowledge = `The following prompt will be a video transcription. I need you to extract the knowledge, to highlight key points, and provide a concise response. The main goal is that the user can get all the knowledge from the video. Provide the response in ${language}. Before each dialogue, there are properties named 'from' and 'to' that represent the beginning and end of the dialogue, respectively. For instance, consider the following example: from: 145 to: 1002 text: "i did that, and you know" from: 1500 to: 2204 text: "yes, I know". In this case, you would send the summary using the 'from' timestamp of the beginning (from: 145) and the 'to' timestamp of the end (to: 2204).`;
+
+    const commonSummary = `You are a professional summarizer, concise and clear. You are going to summarize a video transcription into three or two parts, whatever makes sense to keep the context. Explain the context of the video and the main points. Provide the summary in ${language}. Every summary part you answer should be around 60 words. Before each section of the summary, add a note specifying the exact timestamp in the video that corresponds to the summary you are providing. Before each dialogue, there are properties named 'from' and 'to' that represent the beginning and end of the dialogue, respectively. For instance, consider the following example: from: 145 to: 1002 text: "i did that, and you know" from: 1500 to: 2204 text: "yes, I know". In this case, you would send the summary using the 'from' timestamp of the beginning (from: 145) and the 'to' timestamp of the end (to: 2204).`;
 
     const transcriptedVideo = await getYouTubeTranscript(url);
 
@@ -28,6 +34,8 @@ export async function POST(req: NextRequest, res: NextResponse) {
     });
 
     for (const chunk of transcriptionIntoChunks) {
+      await delay(1000);
+
       const { object } = await generateObject({
         model: groq("llama-3.1-70b-versatile"),
         schema: z.object({
@@ -35,7 +43,7 @@ export async function POST(req: NextRequest, res: NextResponse) {
           from: z.string(),
           to: z.string(),
         }),
-        system: `You are a professional summarizer, concise and clear. You are going to summarize a video transcription into three or two parts, whatever makes sense to keep the context. Explain the context of the video and the main points. Provide the summary in ${language}. Every summary part you answer should be around 60 words. Before each section of the summary, add a note specifying the exact timestamp in the video that corresponds to the summary you are providing. Before each dialogue, there are properties named 'from' and 'to' that represent the beginning and end of the dialogue, respectively. For instance, consider the following example: from: 145 to: 1002 text: "i did that, and you know" from: 1500 to: 2204 text: "yes, I know". In this case, you would send the summary using the 'from' timestamp of the beginning (from: 145) and the 'to' timestamp of the end (to: 2204).`,
+        system: commonSummary,
         prompt: `Video transcription: ${chunk}`,
       });
 
@@ -46,9 +54,6 @@ export async function POST(req: NextRequest, res: NextResponse) {
       summary,
     });
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error("Something went wrong: ", e);
-
     return Response.json({
       error: "Something went wrong: " + e,
     });
