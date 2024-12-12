@@ -2,8 +2,7 @@ import { ResumeI, SummaryI } from "@/interface/resume.interface";
 import { getYouTubeTranscript } from "@/utils/youtube-api";
 import { CoreMessage, generateObject } from "ai";
 import { NextRequest, NextResponse } from "next/server";
-import { createOpenAI as createGroq } from "@ai-sdk/openai";
-import { createGoogleGenerativeAI, google } from "@ai-sdk/google";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { z } from "zod";
 
 export const maxDuration = 60;
